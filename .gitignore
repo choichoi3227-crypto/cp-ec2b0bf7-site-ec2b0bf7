@@ -1,0 +1,11 @@
+# SQLite WAL/SHM만 제외 (본 DB 파일은 추적)
+_db/*.db-shm
+_db/*.db-wal
+
+# 임시 파일
+*.log
+/tmp/
+
+# Node.js
+node_modules/
+.wrangler/

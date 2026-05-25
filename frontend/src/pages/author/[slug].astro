@@ -1,0 +1,28 @@
+---
+// author/[slug].astro — 자동 변환: WordPress author.php → Astro
+import Layout from '@layouts/Layout.astro';
+import PostCard from '@components/PostCard.astro';
+import Sidebar from '@components/Sidebar.astro';
+import { getPosts, getAuthor } from '@utils/wp-api';
+// 빌드 시 작성자 목록을 정적으로 생성하기 위해 포스트에서 author ID 수집
+export async function getStaticPaths() {
+  const posts = await getPosts({ perPage: 100, embed: true });
+  const authorMap = new Map<string, any>();
+  for (const p of posts) {
+    const a = p._embedded?.author?.[0];
+    if (a && !authorMap.has(a.slug)) authorMap.set(a.slug, a);
+  }
+  return [...authorMap.values()].map(a => ({ params: { slug: a.slug }, props: { author: a } }));
+}
+const { author } = Astro.props;
+const posts = await getPosts({ authorId: author.id, perPage: 10, embed: true });
+---
+<Layout title={`작성자: ${author.name}`} bodyClass={`archive author author-${author.slug}`}>
+  <header class="page-header author-header">
+    {author.avatar_urls?.['96'] && <img src={author.avatar_urls['96']} alt={author.name} class="author-avatar" width="96" height="96" />}
+    <h1 class="page-title">{author.name}</h1>
+    {author.description && <p class="author-bio">{author.description}</p>}
+  </header>
+  {posts.map(p => <PostCard post={p} headingLevel="h2" />)}
+  <Sidebar slot="sidebar" />
+</Layout>

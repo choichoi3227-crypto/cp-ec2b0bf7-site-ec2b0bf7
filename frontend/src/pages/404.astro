@@ -1,0 +1,20 @@
+---
+// 404.astro — 자동 변환: WordPress 404.php → Astro
+import Layout from '@layouts/Layout.astro';
+import Sidebar from '@components/Sidebar.astro';
+---
+<Layout title="페이지를 찾을 수 없습니다" bodyClass="error404" noindex={true}>
+  <section class="error-404 not-found">
+    <header class="page-header">
+      <h1 class="page-title">앗! 해당 페이지를 찾을 수 없습니다.</h1>
+    </header>
+    <div class="page-content">
+      <p>찾으시는 페이지가 이동, 삭제되었거나 주소가 잘못 입력되었습니다. 아래에서 찾으시는 내용을 검색해보세요.</p>
+      <form role="search" method="get" action="/search" class="search-form">
+        <input type="search" name="s" placeholder="검색어 입력…" class="search-field" />
+        <button type="submit" class="search-submit">검색</button>
+      </form>
+    </div>
+  </section>
+  <Sidebar slot="sidebar" />
+</Layout>

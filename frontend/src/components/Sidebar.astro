@@ -1,0 +1,43 @@
+---
+// Sidebar.astro — 자동 변환: WordPress get_sidebar() / dynamic_sidebar() → Astro 컴포넌트
+import { getCategories, getTags, getPosts } from '@utils/wp-api';
+const [categories, tags, recentPosts] = await Promise.all([
+  getCategories(), getTags(), getPosts({ perPage: 5 })
+]);
+---
+<aside id="secondary" class="widget-area">
+  <!-- 최근 글 위젯 — WordPress Recent Posts Widget 변환 -->
+  <section class="widget widget_recent_entries">
+    <h2 class="widget-title">최근 글</h2>
+    <ul>
+      {recentPosts.map(p => (
+        <li><a href={`/${p.slug}/`} set:html={p.title.rendered} /></li>
+      ))}
+    </ul>
+  </section>
+  <!-- 카테고리 위젯 — WordPress Categories Widget 변환 -->
+  {categories.length > 0 && (
+    <section class="widget widget_categories">
+      <h2 class="widget-title">카테고리</h2>
+      <ul>
+        {categories.map(cat => (
+          <li class={`cat-item cat-item-${cat.id}`}>
+            <a href={`/category/${cat.slug}/`}>{cat.name}</a>
+            <span class="count">({cat.count})</span>
+          </li>
+        ))}
+      </ul>
+    </section>
+  )}
+  <!-- 태그 클라우드 위젯 — WordPress Tag Cloud Widget 변환 -->
+  {tags.length > 0 && (
+    <section class="widget widget_tag_cloud">
+      <h2 class="widget-title">태그</h2>
+      <div class="tagcloud">
+        {tags.map(tag => (
+          <a href={`/tag/${tag.slug}/`} class="tag-cloud-link">{tag.name} ({tag.count})</a>
+        ))}
+      </div>
+    </section>
+  )}
+</aside>

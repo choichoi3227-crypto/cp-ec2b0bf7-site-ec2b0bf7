@@ -1,0 +1,22 @@
+---
+// index.astro — 자동 변환: WordPress index.php (홈 루프) → Astro
+import Layout from '@layouts/Layout.astro';
+import PostCard from '@components/PostCard.astro';
+import Sidebar from '@components/Sidebar.astro';
+import Pagination from '@components/Pagination.astro';
+import { getPosts, getSiteInfo } from '@utils/wp-api';
+const page = Number(Astro.url.searchParams.get('page') ?? 1);
+const [posts, siteInfo] = await Promise.all([getPosts({ perPage: 10, page, embed: true }), getSiteInfo()]);
+---
+<Layout title={siteInfo?.name} description={siteInfo?.description} bodyClass="home blog">
+  <div id="content" class="site-content">
+    <div id="primary" class="content-area">
+      {posts.length > 0
+        ? posts.map(post => <PostCard post={post} headingLevel="h2" />)
+        : <p class="no-posts">아직 게시물이 없습니다.</p>
+      }
+      <Pagination currentPage={page} totalPages={5} baseUrl="/" />
+    </div>
+    <Sidebar slot="sidebar" />
+  </div>
+</Layout>

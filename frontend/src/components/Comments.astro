@@ -1,0 +1,37 @@
+---
+// Comments.astro — 자동 변환: WordPress comments_template() → Astro 컴포넌트
+export interface Props { postId: number; commentsOpen: boolean; }
+const { postId, commentsOpen } = Astro.props;
+let comments: any[] = [];
+try {
+  const res = await fetch('https://cp-ec2b0bf7-wp.workers.dev/wp-json/wp/v2/comments?post=' + postId + '&per_page=100&_embed=1');
+  if (res.ok) comments = await res.json();
+} catch {}
+---
+<section id="comments" class="comments-area">
+  {comments.length > 0 && (
+    <>
+      <h2 class="comments-title">{comments.length}개의 댓글</h2>
+      <ol class="comment-list">
+        {comments.map((c: any) => (
+          <li id={`comment-${c.id}`} class="comment">
+            <article class="comment-body">
+              <footer class="comment-meta">
+                <img src={c.author_avatar_urls?.['48']} alt={c.author_name} width="48" height="48" class="avatar" />
+                <div class="comment-author"><b class="fn">{c.author_name}</b></div>
+                <div class="comment-metadata"><time datetime={c.date}>{new Date(c.date).toLocaleDateString('ko-KR')}</time></div>
+              </footer>
+              <div class="comment-content" set:html={c.content.rendered} />
+            </article>
+          </li>
+        ))}
+      </ol>
+    </>
+  )}
+  {commentsOpen && (
+    <div id="respond" class="comment-respond">
+      <h3 class="comment-reply-title">댓글 남기기</h3>
+      <p><a href={`https://cp-ec2b0bf7-wp.workers.dev/?p=${postId}#respond`} rel="noopener">WordPress에서 댓글 작성</a></p>
+    </div>
+  )}
+</section>

@@ -1,0 +1,23 @@
+---
+// category/[slug].astro — 자동 변환: WordPress category.php → Astro
+import Layout from '@layouts/Layout.astro';
+import PostCard from '@components/PostCard.astro';
+import Sidebar from '@components/Sidebar.astro';
+import Pagination from '@components/Pagination.astro';
+import { getCategories, getPosts } from '@utils/wp-api';
+export async function getStaticPaths() {
+  const cats = await getCategories();
+  return cats.map(cat => ({ params: { slug: cat.slug }, props: { cat } }));
+}
+const { cat } = Astro.props;
+const posts = await getPosts({ categoryId: cat.id, perPage: 10, embed: true });
+---
+<Layout title={`카테고리: ${cat.name}`} description={cat.description} bodyClass={`archive category category-${cat.slug}`}>
+  <header class="page-header">
+    <h1 class="page-title">카테고리: <span>{cat.name}</span></h1>
+    {cat.description && <div class="archive-description">{cat.description}</div>}
+  </header>
+  {posts.map(p => <PostCard post={p} headingLevel="h2" />)}
+  <Pagination currentPage={1} totalPages={Math.ceil(cat.count / 10)} baseUrl={`/category/${cat.slug}/`} />
+  <Sidebar slot="sidebar" />
+</Layout>

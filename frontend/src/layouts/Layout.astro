@@ -1,0 +1,74 @@
+---
+// Layout.astro — 자동 변환: WordPress header.php + footer.php + wp_head/wp_footer → Astro Layout
+// 원본: get_header(), get_footer(), wp_head(), wp_footer(), body_class()
+import { getSiteInfo } from '@utils/wp-api';
+export interface Props {
+  title?: string; description?: string; ogImage?: string;
+  bodyClass?: string; noindex?: boolean;
+}
+const { title, description = '', ogImage, bodyClass = '', noindex = false } = Astro.props;
+const siteInfo = await getSiteInfo();
+const siteTitle = siteInfo?.name ?? '인포팡팡';
+const siteDesc  = siteInfo?.description ?? '';
+const fullTitle = title ? `${title} – ${siteTitle}` : siteTitle;
+---
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <!-- wp_head() 변환 -->
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{fullTitle}</title>
+  {description && <meta name="description" content={description} />}
+  {noindex && <meta name="robots" content="noindex,nofollow" />}
+  <!-- Open Graph — WordPress Yoast/RankMath og: 태그 변환 -->
+  <meta property="og:title"       content={fullTitle} />
+  <meta property="og:description" content={description || siteDesc} />
+  <meta property="og:type"        content="website" />
+  <meta property="og:url"         content={Astro.url.href} />
+  {ogImage && <meta property="og:image" content={ogImage} />}
+  <meta name="twitter:card"       content="summary_large_image" />
+  <!-- WordPress 테마 스타일시트 -->
+  <link rel="stylesheet" href="/wp-content/themes/twentytwentyfour/style.css" />
+  <link rel="stylesheet" href="/_assets/style.css" />
+  <link rel="icon" href="/favicon.ico" />
+  <slot name="head" />
+</head>
+<body class:list={['wp-site', bodyClass]}>
+  <!-- WordPress: get_header() 변환 -->
+  <header id="masthead" class="site-header">
+    <div class="site-branding">
+      <a href="/" class="site-logo" rel="home">{siteTitle}</a>
+      {siteDesc && <p class="site-description">{siteDesc}</p>}
+    </div>
+    <nav id="site-navigation" class="main-navigation" aria-label="기본 메뉴">
+      <ul class="nav-menu">
+        <li><a href="/">홈</a></li>
+        <li><a href="/blog/">블로그</a></li>
+        <li><a href="/about/">소개</a></li>
+        <li><a href="/contact/">문의</a></li>
+      </ul>
+    </nav>
+  </header>
+  <!-- WordPress: the_content() 영역 -->
+  <div id="page" class="site">
+    <main id="primary" class="site-main">
+      <slot />
+    </main>
+    <slot name="sidebar" />
+  </div>
+  <!-- WordPress: get_footer() 변환 -->
+  <footer id="colophon" class="site-footer">
+    <div class="site-info">
+      <a href="https://cp-ec2b0bf7-wp.workers.dev">{siteTitle}</a>
+      <span class="sep"> · </span>
+      <span>&copy; {new Date().getFullYear()} {siteTitle}. All rights reserved.</span>
+      <span class="sep"> · </span>
+      <a href="https://cloud-press.co.kr">Powered by CloudPress</a>
+    </div>
+  </footer>
+  <!-- wp_footer() 변환 -->
+  <script src="/_assets/main.js" type="module" defer></script>
+  <slot name="footer-scripts" />
+</body>
+</html>

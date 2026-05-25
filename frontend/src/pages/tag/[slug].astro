@@ -1,0 +1,20 @@
+---
+// tag/[slug].astro — 자동 변환: WordPress tag.php → Astro
+import Layout from '@layouts/Layout.astro';
+import PostCard from '@components/PostCard.astro';
+import Sidebar from '@components/Sidebar.astro';
+import { getTags, getPosts } from '@utils/wp-api';
+export async function getStaticPaths() {
+  const tags = await getTags();
+  return tags.map(tag => ({ params: { slug: tag.slug }, props: { tag } }));
+}
+const { tag } = Astro.props;
+const posts = await getPosts({ tagId: tag.id, perPage: 10, embed: true });
+---
+<Layout title={`태그: ${tag.name}`} bodyClass={`archive tag tag-${tag.slug}`}>
+  <header class="page-header">
+    <h1 class="page-title">태그: <span>{tag.name}</span></h1>
+  </header>
+  {posts.map(p => <PostCard post={p} headingLevel="h2" />)}
+  <Sidebar slot="sidebar" />
+</Layout>

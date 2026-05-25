@@ -1,0 +1,6 @@
+name = "cp-ec2b0bf7-wp-cdn"
+main = "cachecloud-worker.js"
+compatibility_date = "2025-04-01"
+
+[vars]
+ORIGIN_URL = "https://cp-ec2b0bf7-wp.workers.dev"

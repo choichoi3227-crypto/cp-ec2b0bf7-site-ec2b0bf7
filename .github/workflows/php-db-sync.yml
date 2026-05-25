@@ -1,0 +1,53 @@
+name: WordPress DB · PHP 동기화
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '_db/**'
+      - 'wordpress/wp-content/db.php'
+      - 'wp-transform.ts'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PHP 환경 설정 (공식 setup-php)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: mbstring, json, curl, pdo, pdo_sqlite, sqlite3
+          ini-values: memory_limit=256M
+          coverage: none
+
+      - name: wordpress.db · db.php 검증
+        run: |
+          echo "📋 DB/db.php 상태"
+          if [ -f "_db/wordpress.db" ]; then
+            SIZE=$(wc -c < _db/wordpress.db)
+            echo "✅ _db/wordpress.db (${SIZE} bytes)"
+            echo 'PD9waHAKJHJhdyA9IGZpbGVfZ2V0X2NvbnRlbnRzKCdfZGIvd29yZHByZXNzLmRiJyk7CiRkYXRhID0ganNvbl9kZWNvZGUoJHJhdywgdHJ1ZSk7CmlmICgkZGF0YSAmJiBpc3NldCgkZGF0YVsnb3B0aW9ucyddKSkgewogIGVjaG8gJyAg7ZiV7IudOiBDbG91ZFByZXNzIEpTT04g7Iuc65OcJyAuIFBIUF9FT0w7CiAgZWNobyAnICDsmLXshZg6ICcgLiBjb3VudCgkZGF0YVsnb3B0aW9ucyddKSAuIFBIUF9FT0w7Cn0gZWxzZWlmICgkcmF3ICE9PSAnJyAmJiAkcmF3WzBdICE9PSAneycpIHsKICBlY2hvICcgIO2YleyLnTogU1FMaXRlIOuwlOydtOuEiOumrCcgLiBQSFBfRU9MOwogICRwZG8gPSBuZXcgUERPKCdzcWxpdGU6X2RiL3dvcmRwcmVzcy5kYicpOwogICR0YWJsZXMgPSAkcGRvLT5xdWVyeSgiU0VMRUNUIG5hbWUgRlJPTSBzcWxpdGVfbWFzdGVyIFdIRVJFIHR5cGU9J3RhYmxlJyIpLT5mZXRjaEFsbCgpOwogIGVjaG8gJyAg7YWM7J2067iUOiAnIC4gY291bnQoJHRhYmxlcykgLiBQSFBfRU9MOwp9Cg==' | base64 -d > /tmp/check_db.php
+            php /tmp/check_db.php || true
+          else
+            echo "⚠️ _db/wordpress.db 없음"
+          fi
+          if [ -f "wordpress/wp-content/db.php" ]; then
+            echo "✅ wordpress/wp-content/db.php"
+          else
+            echo "❌ db.php 없음"
+            exit 1
+          fi
+
+      - name: JSON 시드 → SQLite 병합 (선택)
+        run: |
+          if [ ! -f "_db/wordpress.db" ]; then exit 0; fi
+          echo 'PD9waHAKJHJhdyA9IEBmaWxlX2dldF9jb250ZW50cygnX2RiL3dvcmRwcmVzcy5kYicpOwokZGF0YSA9IGpzb25fZGVjb2RlKCRyYXcgPzogJycsIHRydWUpOwppZiAoISRkYXRhIHx8IGVtcHR5KCRkYXRhWydvcHRpb25zJ10pKSB7IGVjaG8gJ0pTT04g7Iuc65OcIOyVhOuLmCAtIOqxtOuEiOucgCcgLiBQSFBfRU9MOyBleGl0KDApOyB9CiRwZG8gPSBuZXcgUERPKCdzcWxpdGU6X2RiL3dvcmRwcmVzcy5zcWxpdGUnKTsKJHBkby0+ZXhlYygnUFJBR01BIGpvdXJuYWxfbW9kZT1XQUwnKTsKJHBkby0+ZXhlYygnQ1JFQVRFIFRBQkxFIElGIE5PVCBFWElTVFMgd3Bfb3B0aW9ucyAob3B0aW9uX2lkIElOVEVHRVIgUFJJTUFSWSBLRVkgQVVUT0lOQ1JFTUVOVCwgb3B0aW9uX25hbWUgVEVYVCBVTklRVUUsIG9wdGlvbl92YWx1ZSBURVhULCBhdXRvbG9hZCBURVhUIERFRkFVTFQgeWVzKScpOwokc3QgPSAkcGRvLT5wcmVwYXJlKCdJTlNFUlQgT1IgUkVQTEFDRSBJTlRPIHdwX29wdGlvbnMgKG9wdGlvbl9uYW1lLCBvcHRpb25fdmFsdWUsIGF1dG9sb2FkKSBWQUxVRVMgKD8sPyw/KScpOwpmb3JlYWNoICgkZGF0YVsnb3B0aW9ucyddID8/IFtdIGFzICRvKSB7ICRzdC0+ZXhlY3V0ZShbJG9bJ29wdGlvbl9uYW1lJ10sICRvWydvcHRpb25fdmFsdWUnXSwgJG9bJ2F1dG9sb2FkJ10gPz8gJ3llcyddKTsgfQplY2hvICfinIUgd29yZHByZXNzLnNxbGl0ZSDrs5Htlakg7JmE66OMJyAuIFBIUF9FT0w7Cg==' | base64 -d > /tmp/merge_db.php
+          php /tmp/merge_db.php

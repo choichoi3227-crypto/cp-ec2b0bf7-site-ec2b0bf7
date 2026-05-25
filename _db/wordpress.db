@@ -1,0 +1,134 @@
+{
+  "_version": "2.0",
+  "_engine": "cloudpress-json-db",
+  "_site_id": "ec2b0bf7-6ba0-4964-9221-ee499a6791a4",
+  "options": [
+    {
+      "option_name": "siteurl",
+      "option_value": "https://cp-ec2b0bf7-wp.workers.dev",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "blogname",
+      "option_value": "인포팡팡",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "blogdescription",
+      "option_value": "",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "admin_email",
+      "option_value": "admin@ec2b0bf7.cloudpress.app",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "home",
+      "option_value": "https://cp-ec2b0bf7-wp.workers.dev",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "template",
+      "option_value": "twentytwentyfour",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "stylesheet",
+      "option_value": "twentytwentyfour",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "blogcharset",
+      "option_value": "UTF-8",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "WPLANG",
+      "option_value": "ko_KR",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "timezone_string",
+      "option_value": "Asia/Seoul",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "permalink_structure",
+      "option_value": "/%postname%/",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "posts_per_page",
+      "option_value": "10",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "active_plugins",
+      "option_value": "a:1:{s:43:\"sqlite-database-integration/load.php\";b:1;}",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "db_version",
+      "option_value": "57155",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "initial_db_version",
+      "option_value": "57155",
+      "autoload": "yes"
+    },
+    {
+      "option_name": "cloudpress_site_id",
+      "option_value": "ec2b0bf7-6ba0-4964-9221-ee499a6791a4",
+      "autoload": "yes"
+    }
+  ],
+  "users": [
+    {
+      "ID": 1,
+      "user_login": "wp_2dw8gypw",
+      "user_pass": "$P$6BCaZR40Zsn6pbWpRYgJdo5.xitJjk1",
+      "user_email": "admin@ec2b0bf7.cloudpress.app",
+      "user_url": "https://cp-ec2b0bf7-wp.workers.dev",
+      "user_registered": "2026-05-25 05:26:36",
+      "display_name": "wp_2dw8gypw",
+      "user_status": 0
+    }
+  ],
+  "usermeta": [
+    {
+      "user_id": 1,
+      "meta_key": "wp_capabilities",
+      "meta_value": "a:1:{s:13:\"administrator\";b:1;}"
+    },
+    {
+      "user_id": 1,
+      "meta_key": "wp_user_level",
+      "meta_value": "10"
+    },
+    {
+      "user_id": 1,
+      "meta_key": "nickname",
+      "meta_value": "wp_2dw8gypw"
+    }
+  ],
+  "posts": [
+    {
+      "ID": 1,
+      "post_author": 1,
+      "post_date": "2026-05-25 05:26:36",
+      "post_date_gmt": "2026-05-25 05:26:36",
+      "post_content": "CloudPress WordPress 호스팅에 오신 것을 환영합니다!",
+      "post_title": "환영합니다",
+      "post_status": "publish",
+      "post_name": "welcome",
+      "post_type": "post",
+      "comment_status": "open",
+      "ping_status": "open",
+      "post_modified": "2026-05-25 05:26:36"
+    }
+  ],
+  "_created_at": "2026-05-25 05:26:36",
+  "_updated_at": "2026-05-25 05:26:36"
+}

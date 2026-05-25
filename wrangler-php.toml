@@ -1,0 +1,12 @@
+# CloudPress PHP Runner Worker (자동 생성)
+name               = "cp-ec2b0bf7-wp-php"
+main               = "php-runner.js"
+compatibility_date = "2025-04-01"
+compatibility_flags = ["nodejs_compat"]
+
+# KV CACHE: Cloudflare 대시보드에서 바인딩 설정 필요
+
+[vars]
+SITE_ID  = "ec2b0bf7-6ba0-4964-9221-ee499a6791a4"
+GH_OWNER = "choichoi3227-crypto"
+GH_REPO  = "cp-ec2b0bf7-site-ec2b0bf7"

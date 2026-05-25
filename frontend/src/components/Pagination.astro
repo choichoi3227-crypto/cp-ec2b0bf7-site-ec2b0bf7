@@ -1,0 +1,16 @@
+---
+// Pagination.astro — 자동 변환: WordPress paginate_links() → Astro 컴포넌트
+export interface Props { currentPage: number; totalPages: number; baseUrl: string; }
+const { currentPage, totalPages, baseUrl } = Astro.props;
+const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
+---
+{totalPages > 1 && (
+  <nav class="pagination wp-pagenavi" aria-label="페이지 탐색">
+    {currentPage > 1 && <a href={`${baseUrl}page/${currentPage - 1}/`} class="prev page-numbers">← 이전</a>}
+    {pages.map(p => p === currentPage
+      ? <span class="page-numbers current" aria-current="page">{p}</span>
+      : <a href={p === 1 ? baseUrl : `${baseUrl}page/${p}/`} class="page-numbers">{p}</a>
+    )}
+    {currentPage < totalPages && <a href={`${baseUrl}page/${currentPage + 1}/`} class="next page-numbers">다음 →</a>}
+  </nav>
+)}

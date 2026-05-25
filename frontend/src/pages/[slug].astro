@@ -1,0 +1,59 @@
+---
+// [slug].astro — 자동 변환: WordPress single.php + page.php → Astro 동적 라우트
+import Layout from '@layouts/Layout.astro';
+import Sidebar from '@components/Sidebar.astro';
+import Comments from '@components/Comments.astro';
+import { getPosts, getPages, getPost, getPage, getFeaturedImageUrl, formatDate, getAvatarUrl } from '@utils/wp-api';
+export async function getStaticPaths() {
+  const [posts, pages] = await Promise.all([
+    getPosts({ perPage: 100, embed: true }),
+    getPages(100),
+  ]);
+  return [
+    ...posts.map(p => ({ params: { slug: p.slug }, props: { type: 'post', item: p } })),
+    ...pages.map(p => ({ params: { slug: p.slug }, props: { type: 'page', item: p } })),
+  ];
+}
+const { type, item } = Astro.props;
+const image    = type === 'post' ? getFeaturedImageUrl(item as any, 'large') : null;
+const author   = type === 'post' ? (item as any)._embedded?.author?.[0] : null;
+const categories = type === 'post' ? ((item as any)._embedded?.['wp:term']?.[0]?.filter((t:any) => t.taxonomy === 'category') ?? []) : [];
+const tags     = type === 'post' ? ((item as any)._embedded?.['wp:term']?.[1] ?? []) : [];
+---
+<Layout
+  title={item.title.rendered}
+  description={(item.excerpt?.rendered ?? '').replace(/<[^>]*>/g, '').trim().slice(0, 160)}
+  ogImage={image ?? undefined}
+  bodyClass={`single single-${type} postid-${item.id}`}
+>
+  <article id={`post-${item.id}`} class:list={['post', `post-${item.id}`, type, 'hentry']}>
+    <header class="entry-header">
+      {image && <div class="post-thumbnail"><img src={image} alt={item.title.rendered} /></div>}
+      <h1 class="entry-title" set:html={item.title.rendered} />
+      {type === 'post' && (
+        <div class="entry-meta">
+          {author && (
+            <span class="posted-by">
+              {getAvatarUrl(item as any) && <img src={getAvatarUrl(item as any)!} alt={author.name} width="32" height="32" class="avatar" />}
+              <a href={`/author/${author.slug}/`}>{author.name}</a>
+            </span>
+          )}
+          <time datetime={(item as any).date} class="entry-date">{formatDate((item as any).date)}</time>
+          {categories.length > 0 && (
+            <span class="cat-links">
+              {categories.map((c:any) => <a href={`/category/${c.slug}/`}>{c.name}</a>)}
+            </span>
+          )}
+        </div>
+      )}
+    </header>
+    <div class="entry-content" set:html={item.content.rendered} />
+    {tags.length > 0 && (
+      <footer class="entry-footer">
+        <span class="tags-links">태그: {tags.map((t:any) => <a href={`/tag/${t.slug}/`} rel="tag">{t.name}</a>)}</span>
+      </footer>
+    )}
+  </article>
+  {type === 'post' && <Comments postId={item.id} commentsOpen={true} />}
+  <Sidebar slot="sidebar" />
+</Layout>

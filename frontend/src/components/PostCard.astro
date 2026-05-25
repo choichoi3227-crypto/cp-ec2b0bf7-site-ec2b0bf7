@@ -1,0 +1,32 @@
+---
+// PostCard.astro — 자동 변환: WordPress ループ 아이템 → Astro 컴포넌트
+import type { WpPost } from '@utils/wp-api';
+import { getFeaturedImageUrl, formatDate, stripHtml } from '@utils/wp-api';
+export interface Props { post: WpPost; headingLevel?: 'h2' | 'h3'; }
+const { post, headingLevel: H = 'h2' } = Astro.props;
+const image = getFeaturedImageUrl(post, 'medium');
+const author = post._embedded?.author?.[0];
+const categories = post._embedded?.['wp:term']?.[0]?.filter(t => t.taxonomy === 'category') ?? [];
+const excerpt = stripHtml(post.excerpt.rendered).slice(0, 160);
+---
+<article class:list={['wp-post-card', `post-${post.id}`]}>
+  {image && (
+    <a href={`/${post.slug}/`} class="post-thumbnail">
+      <img src={image} alt={post.title.rendered} loading="lazy" decoding="async" />
+    </a>
+  )}
+  <div class="entry-content-wrapper">
+    <div class="entry-meta">
+      {categories.map(cat => (
+        <a href={`/category/${cat.slug}/`} class="cat-link">{cat.name}</a>
+      ))}
+      <time datetime={post.date}>{formatDate(post.date)}</time>
+      {author && <span class="author">by <a href={`/author/${author.slug}/`}>{author.name}</a></span>}
+    </div>
+    <H class="entry-title">
+      <a href={`/${post.slug}/`} set:html={post.title.rendered} />
+    </H>
+    <div class="entry-excerpt"><p>{excerpt}…</p></div>
+    <a href={`/${post.slug}/`} class="read-more">더 읽기 <span class="screen-reader-text">{post.title.rendered}</span></a>
+  </div>
+</article>

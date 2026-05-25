@@ -1,0 +1,254 @@
+name: WordPress 설치 (PHP CLI + SQLite)
+
+on:
+  workflow_dispatch:
+    inputs:
+      force_reinstall:
+        description: '강제 재설치'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  install:
+    runs-on: ubuntu-latest
+    env:
+      ADMIN_USER: "wp_2dw8gypw"
+      ADMIN_PASS: "0SvQpLBw3iBoQiL0"
+      ADMIN_EMAIL: "admin@ec2b0bf7.cloudpress.app"
+      SITE_URL: "https://cp-ec2b0bf7-wp.workers.dev"
+      SITE_NAME: "인포팡팡"
+      DB_PREFIX: "wp_"
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: PHP 환경 설정 (공식 setup-php)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          extensions: sqlite3, mbstring, xml, curl, zip, gd, intl, opcache
+          ini-values: memory_limit=512M, max_execution_time=300, default_charset=UTF-8
+          coverage: none
+          tools: composer
+
+      - name: 시스템 도구 설치
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y sqlite3 curl unzip rsync
+
+      - name: wordpress.db · db.php 검증
+        run: |
+          mkdir -p _db wordpress/wp-content
+          chmod 777 _db
+          if [ -f "_db/wordpress.db" ]; then
+            echo "✅ _db/wordpress.db: $(wc -c < _db/wordpress.db) bytes"
+          else
+            echo "⚠️ _db/wordpress.db 없음"
+          fi
+          if [ -f "wordpress/wp-content/db.php" ]; then
+            echo "✅ wordpress/wp-content/db.php 존재"
+          else
+            echo "⚠️ db.php 없음 — 플러그인 설치 단계에서 생성됩니다"
+          fi
+
+      - name: WP-CLI 설치
+        run: |
+          curl -sL "https://raw.githubusercontent.com/wp-cli/builds/gh-pages/phar/wp-cli.phar" -o /usr/local/bin/wp
+          chmod +x /usr/local/bin/wp
+
+      - name: WordPress 다운로드
+        run: |
+          if [ -f "wp-load.php" ] && [ "${{ github.event.inputs.force_reinstall }}" != "true" ]; then
+            echo "WordPress 이미 존재 - 건너뜀"
+          else
+            curl -sL "https://wordpress.org/latest.zip" -o /tmp/wordpress.zip
+            unzip -q /tmp/wordpress.zip -d /tmp/wp_extract/
+            mkdir -p wordpress
+            rsync -a --delete               --exclude='.git/'               --exclude='.github/'               /tmp/wp_extract/wordpress/ ./wordpress/
+            echo "WordPress 다운로드 완료"
+          fi
+
+      - name: SQLite Integration 플러그인 설치
+        run: |
+          mkdir -p wordpress/wp-content/plugins _db
+          touch _db/.gitkeep
+          chmod 777 _db
+          if [ ! -d "wordpress/wp-content/plugins/sqlite-database-integration" ]; then
+            curl -sL "https://downloads.wordpress.org/plugin/sqlite-database-integration.latest-stable.zip" -o /tmp/sqlite.zip
+            unzip -q /tmp/sqlite.zip -d wordpress/wp-content/plugins/
+          fi
+          # db.php: 레포에 이미 있으면 유지, 없으면 db.copy에서 생성
+          DB_COPY="wordpress/wp-content/plugins/sqlite-database-integration/db.copy"
+          PLUGIN_PATH="$(pwd)/wordpress/wp-content/plugins/sqlite-database-integration"
+          if [ -f "wordpress/wp-content/db.php" ]; then
+            echo "✅ 기존 db.php 유지 (프로비저닝 업로드본)"
+          elif [ -f "$DB_COPY" ]; then
+            cp -f "$DB_COPY" wordpress/wp-content/db.php
+            sed -i "s|{SQLITE_IMPLEMENTATION_FOLDER_PATH}|${PLUGIN_PATH}|g" wordpress/wp-content/db.php
+            sed -i "s|{SQLITE_PLUGIN}|sqlite-database-integration/load.php|g" wordpress/wp-content/db.php
+            echo "db.php 생성 완료 (db.copy)"
+          else
+            echo "경고: db.copy 없음"
+          fi
+          echo "SQLite 플러그인 준비 완료"
+
+      - name: wp-config.php 생성
+        run: |
+          WP_CFG_URL="${SITE_URL:-https://cp-ec2b0bf7-wp.workers.dev}"
+          # _db/ 폴더 확인 및 생성 (레포 루트에 위치해야 함)
+          mkdir -p _db
+          chmod 777 _db
+          {
+            echo '<?php'
+            echo "// CloudPress 자동 생성 wp-config.php (SQLite + UTF-8)"
+            echo "// DB_DIR: wordpress/ 폴더 한 단계 위의 _db/ (레포 루트)"
+            echo "define('DB_DIR',  __DIR__ . '/../_db/');"
+            echo "define('DB_FILE', 'wordpress.db');"
+            echo "define('DB_ENGINE', 'sqlite');"
+            echo "define('AUTH_KEY',         'put your unique phrase here 1');"
+            echo "define('SECURE_AUTH_KEY',  'put your unique phrase here 2');"
+            echo "define('LOGGED_IN_KEY',    'put your unique phrase here 3');"
+            echo "define('NONCE_KEY',        'put your unique phrase here 4');"
+            echo "define('AUTH_SALT',        'put your unique phrase here 5');"
+            echo "define('SECURE_AUTH_SALT', 'put your unique phrase here 6');"
+            echo "define('LOGGED_IN_SALT',   'put your unique phrase here 7');"
+            echo "define('NONCE_SALT',       'put your unique phrase here 8');"
+            echo "\$table_prefix = 'wp_';"
+            echo "define('WP_HOME',    getenv('SITE_URL') ?: '\$WP_CFG_URL');"
+            echo "define('WP_SITEURL', getenv('SITE_URL') ?: '\$WP_CFG_URL');"
+            echo "define('WP_CONTENT_DIR', __DIR__ . '/wp-content');"
+            echo "define('WP_DEBUG', false);"
+            echo "if ( ! defined( 'ABSPATH' ) ) { define( 'ABSPATH', __DIR__ . '/' ); }"
+            echo "require_once ABSPATH . 'wp-settings.php';"
+          } > wordpress/wp-config.php
+          echo "wp-config.php 생성 완료"
+          # _db/ 경로 확인
+          echo "_db/ 위치: $(pwd)/_db/"
+          ls -la _db/ || true
+
+      - name: WordPress 설치 (WP-CLI)
+        run: |
+          wp core install \
+            --url="\$SITE_URL" \
+            --title="\$SITE_NAME" \
+            --admin_user="\$ADMIN_USER" \
+            --admin_password="\$ADMIN_PASS" \
+            --admin_email="\$ADMIN_EMAIL" \
+            --skip-email \
+            --allow-root \
+            --path=./wordpress 2>&1 || echo "이미 설치됨 또는 재설치 진행"
+          wp plugin activate sqlite-database-integration --allow-root --path=./wordpress 2>&1 || true
+          wp option update siteurl "\$SITE_URL" --allow-root --path=./wordpress 2>&1 || true
+          wp option update home "\$SITE_URL" --allow-root --path=./wordpress 2>&1 || true
+          echo "✅ WordPress 설치 완료"
+
+      - name: 기본 플러그인 설치
+        run: |
+          wp plugin install classic-editor --activate --allow-root --path=./wordpress 2>&1 || true
+          # _plugins/ → wordpress/wp-content/plugins/ 복사 및 활성화
+          if [ -d "_plugins/aibp-pro" ]; then
+            cp -r _plugins/aibp-pro wordpress/wp-content/plugins/
+            wp plugin activate aibp-pro --allow-root --path=./wordpress 2>&1 || true
+            echo "aibp-pro 활성화 완료"
+          fi
+          if [ -f "_plugins/wp-rocket.zip" ]; then
+            wp plugin install _plugins/wp-rocket.zip --activate --allow-root --path=./wordpress 2>&1 || true
+            echo "wp-rocket 설치 완료"
+          fi
+          echo "기본 플러그인 설치 완료"
+
+      - name: PHP 서버로 초기 캐시 생성
+        run: |
+          sudo apt-get install -y php-cli php-sqlite3 php-mbstring php-xml php-curl php-zip php-gd php-intl -qq 2>/dev/null || true
+          mkdir -p _cache
+          export LANG=ko_KR.UTF-8 LC_ALL=ko_KR.UTF-8
+          sudo locale-gen ko_KR.UTF-8 2>/dev/null || true
+          # PHP ini config
+          PHP_INI=$(mktemp --suffix=.ini)
+          { echo 'default_charset=UTF-8'; echo 'mbstring.internal_encoding=UTF-8'; } > "$PHP_INI"
+          # wp-config.php 백업
+          cp -f wordpress/wp-config.php wordpress/wp-config.php.bak
+          # Set siteurl/home to localhost via WP-CLI to prevent redirects
+          wp option update siteurl 'http://localhost:9090' --allow-root --path=./wordpress 2>/dev/null || true
+          wp option update home    'http://localhost:9090' --allow-root --path=./wordpress 2>/dev/null || true
+          # Start PHP built-in server
+          php -c "$PHP_INI" -S localhost:9090 -t ./wordpress > /tmp/php.log 2>&1 &
+          PHP_PID=$!
+          # Wait for server (up to 15s)
+          for i in $(seq 1 15); do
+            curl -sf --max-time 1 http://localhost:9090/ > /dev/null 2>&1 && break
+            sleep 1
+          done
+          # Cache homepage - reject if redirected to install/setup page
+          HTTP=$(curl -L -s -w "%{http_code}:%{url_effective}" -o /tmp/wp_home.html             --max-time 30 -H "Accept-Charset: utf-8"             "http://localhost:9090/" 2>/dev/null || echo "000:")
+          CODE=$(echo "$HTTP" | cut -d: -f1)
+          FINAL=$(echo "$HTTP" | cut -d: -f2-)
+          echo "캐시 HTTP: $CODE  최종URL: $FINAL"
+          if echo "$FINAL" | grep -qiE "install|setup-config|upgrade"; then
+            echo "⚠️ install 페이지 감지 — 캐시 생략"
+            rm -f /tmp/wp_home.html
+          elif [ "$CODE" = "200" ] && grep -qi "<html" /tmp/wp_home.html 2>/dev/null; then
+            cp /tmp/wp_home.html _cache/index.html
+            echo "✅ 캐시 생성 완료 ($(wc -c < _cache/index.html) bytes)"
+          else
+            echo "⚠️ 캐시 실패 (HTTP $CODE) — 생략"
+          fi
+          rm -f /tmp/wp_home.html
+          # Cache wp-login.php and wp-json
+          for SLUG in wp-login.php wp-json; do
+            curl -sf -L --max-time 10 -H "Accept-Charset: utf-8"               "http://localhost:9090/$SLUG" -o "_cache/$SLUG" 2>/dev/null || true
+          done
+          kill $PHP_PID 2>/dev/null || true
+          rm -f "$PHP_INI"
+          # Restore siteurl/home to real SITE_URL
+          wp option update siteurl "$SITE_URL" --allow-root --path=./wordpress 2>/dev/null || true
+          wp option update home    "$SITE_URL" --allow-root --path=./wordpress 2>/dev/null || true
+          cp -f wordpress/wp-config.php.bak wordpress/wp-config.php 2>/dev/null || true
+
+      - name: 파일 커밋 & 푸시
+        run: |
+          git config user.name "CloudPress Bot"
+          git config user.email "bot@cloudpress.app"
+          git config http.postBuffer 524288000
+          # _db 폴더 생성 (wordpress.db 포함)
+          mkdir -p _db
+          chmod 777 _db
+          # _cache 폴더 생성
+          mkdir -p _cache
+          # _plugins 폴더 생성
+          mkdir -p _plugins
+          touch _plugins/.gitkeep
+          # gitignore에서 _db/wordpress.db 제거 (db 파일을 레포에 포함시키기 위해)
+          # wordpress.db를 레포에 포함해야 Worker가 GitHub raw로 읽을 수 있음
+          sed -i '/^_db/wordpress.db$/d' .gitignore 2>/dev/null || true
+          sed -i '/^_db/*.db$/d' .gitignore 2>/dev/null || true
+          # wordpress.db 존재 확인
+          if [ -f "_db/wordpress.db" ]; then
+            echo "✅ wordpress.db 확인: $(wc -c < _db/wordpress.db) bytes"
+          else
+            echo "⚠️ wordpress.db 없음 - 빈 파일 생성"
+            touch _db/wordpress.db
+          fi
+          git add wordpress/ 2>/dev/null || true
+          git add _db/wordpress.db _db/.gitkeep .gitignore 2>/dev/null || true
+          git add wordpress/wp-content/db.php 2>/dev/null || true
+          git add _cache/ 2>/dev/null || true
+          git add _plugins/ 2>/dev/null || true
+          if git diff --staged --quiet; then
+            echo "변경사항 없음 - 건너뜀"
+          else
+            git commit -m "WordPress 설치 완료 (_db/_cache/_plugins 포함)"
+            # race condition 방지: pull --rebase 후 최대 5회 재시도
+            for i in 1 2 3 4 5; do
+              git pull --rebase origin main 2>/dev/null || true
+              git push origin main && break
+              echo "Push 충돌 재시도 ($i/5)..."
+              sleep $((i * 3))
+            done
+          fi
+          echo "완료"

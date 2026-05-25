@@ -1,0 +1,18 @@
+---
+// blog/index.astro — 자동 변환: WordPress home.php (포스트 목록 페이지) → Astro
+import Layout from '@layouts/Layout.astro';
+import PostCard from '@components/PostCard.astro';
+import Sidebar from '@components/Sidebar.astro';
+import Pagination from '@components/Pagination.astro';
+import { getPosts } from '@utils/wp-api';
+const page = Number(Astro.url.searchParams.get('page') ?? 1);
+const posts = await getPosts({ perPage: 10, page, embed: true });
+---
+<Layout title="블로그" bodyClass="blog home">
+  <header class="page-header">
+    <h1 class="page-title">블로그</h1>
+  </header>
+  {posts.map(p => <PostCard post={p} headingLevel="h2" />)}
+  <Pagination currentPage={page} totalPages={10} baseUrl="/blog/" />
+  <Sidebar slot="sidebar" />
+</Layout>
